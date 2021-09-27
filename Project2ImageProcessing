@@ -1,0 +1,296 @@
+#include <fstream>
+#include <string>
+#include <iostream>
+#include <vector>
+using namespace std;
+
+struct Pixel{
+    unsigned char r;
+    unsigned char g;
+    unsigned char b;
+};
+
+
+struct Header{
+    char idLength;
+    char colorMapType;
+    char dataTypeCode;
+    short colorMapOrigin;
+    short colorMapLength;
+    char colorMapDepth;
+    short xOrigin;
+    short yOrigin;
+    short width;
+    short height;
+    char bitsPerPixel;
+    char imageDescriptor;
+    vector<Pixel> pixels;
+    Header(){}
+};
+
+Header ReadFile(string filePath){
+    ifstream inFile(filePath,ios_base::binary);
+    Header headerObject;
+    inFile.read(&headerObject.idLength, sizeof(headerObject.idLength));
+    inFile.read(&headerObject.colorMapType, sizeof(headerObject.colorMapType));
+    inFile.read(&headerObject.dataTypeCode, sizeof(headerObject.dataTypeCode));
+    inFile.read((char*)&headerObject.colorMapOrigin, sizeof(headerObject.colorMapOrigin));
+    inFile.read((char*)&headerObject.colorMapLength, sizeof(headerObject.colorMapLength));
+    inFile.read((char*)&headerObject.colorMapDepth, sizeof(headerObject.colorMapDepth));
+    inFile.read((char*)&headerObject.xOrigin, sizeof(headerObject.xOrigin));
+    inFile.read((char*)&headerObject.yOrigin, sizeof(headerObject.yOrigin));
+    inFile.read((char*)&headerObject.width, sizeof(headerObject.width));
+    inFile.read((char*)&headerObject.height, sizeof(headerObject.height));
+    inFile.read(&headerObject.bitsPerPixel, sizeof(headerObject.bitsPerPixel));
+    inFile.read(&headerObject.imageDescriptor, sizeof(headerObject.imageDescriptor));
+    for(unsigned int i=0; i<headerObject.width*headerObject.height ;i++){
+        Pixel temp;
+        unsigned char tempr;
+        inFile.read((char*)&temp.b, 1);
+        inFile.read((char*)&temp.g, 1);
+        inFile.read((char*)&temp.r, 1);
+        headerObject.pixels.push_back(temp);
+    }
+    inFile.close();
+    return headerObject;
+}
+
+void copyHeader(Header* original, Header* copy){
+    copy->idLength=original->idLength;
+    copy->colorMapType=original->colorMapType;
+    copy->dataTypeCode=original->dataTypeCode;
+    copy->colorMapOrigin=original->colorMapOrigin;
+    copy->colorMapLength=original->colorMapLength;
+    copy->colorMapDepth=original->colorMapDepth;
+    copy->xOrigin=original->xOrigin;
+    copy->yOrigin=original->yOrigin;
+    copy->width=original->width;
+    copy->height=original->height;
+    copy->bitsPerPixel=original->bitsPerPixel;
+    copy->imageDescriptor=original->imageDescriptor;
+}
+
+void writeFile(string filePath, Header* out){
+    ofstream outFile(filePath, ios_base::binary);
+    outFile.write((char*)&out->idLength,sizeof(out->idLength));
+    outFile.write((char*)&out->colorMapType,sizeof(out->colorMapType));
+    outFile.write((char*)&out->dataTypeCode,sizeof(out->dataTypeCode));
+    outFile.write((char*)&out->colorMapOrigin,sizeof(out->colorMapOrigin));
+    outFile.write((char*)&out->colorMapLength,sizeof(out->colorMapLength));
+    outFile.write((char*)&out->colorMapDepth,sizeof(out->colorMapDepth));
+    outFile.write((char*)&out->xOrigin,sizeof(out->xOrigin));
+    outFile.write((char*)&out->yOrigin,sizeof(out->yOrigin));
+    outFile.write((char*)&out->width,sizeof(out->width));
+    outFile.write((char*)&out->height,sizeof(out->height));
+    outFile.write((char*)&out->bitsPerPixel,sizeof(out->bitsPerPixel));
+    outFile.write((char*)&out->imageDescriptor,sizeof(out->imageDescriptor));
+    for(unsigned int i=0;i<out->width*out->height;i++){
+        outFile.write((char*)&(out->pixels[i].b),1);
+        outFile.write((char*)&(out->pixels[i].g),1);
+        outFile.write((char*)&(out->pixels[i].r),1);
+    }
+}
+
+Header multiply(Header* topLayer, Header* bottomLayer){
+    Header output;
+    copyHeader(topLayer,&output);
+    for(unsigned int i=0; i<(topLayer->height)*(topLayer->width); i++){
+        float r=((float)(topLayer->pixels[i].r)*(bottomLayer->pixels[i].r))/255+0.5f;
+        float g=((float)(topLayer->pixels[i].g)*(bottomLayer->pixels[i].g))/255+0.5f;
+        float b=((float)(topLayer->pixels[i].b)*(bottomLayer->pixels[i].b))/255+0.5f;
+        Pixel result;
+        result.r=(unsigned char)r;
+        result.g=(unsigned char)g;
+        result.b=(unsigned char)b;
+        output.pixels.push_back(result);
+    }
+    return output;
+}
+
+Header subtract(Header* topLayer, Header* bottomLayer){
+    Header output;
+    copyHeader(topLayer,&output);
+    for(unsigned int i=0; i<(topLayer->height)*(topLayer->width); i++){
+        float r=((float)(topLayer->pixels[i].r)-(bottomLayer->pixels[i].r));
+        float g=((float)(topLayer->pixels[i].g)-(bottomLayer->pixels[i].g));
+        float b=((float)(topLayer->pixels[i].b)-(bottomLayer->pixels[i].b));
+        if(r<0)
+            r=0;
+        if(g<0)
+            g=0;
+        if(b<0)
+            b=0;
+        Pixel result;
+        result.r=(unsigned char)r;
+        result.g=(unsigned char)g;
+        result.b=(unsigned char)b;
+        output.pixels.push_back(result);
+    }
+    return output;
+}
+void Test(string file1, string file2) {
+    bool Success = true;
+    Header h1=ReadFile(file1);
+    Header h2=ReadFile(file2);
+    for(unsigned int i = 0; i < h1.width * h1.height; i++) {
+        unsigned char B1 = h1.pixels[i].b;
+        unsigned char B2 = h2.pixels[i].b;
+        unsigned char G1 = h1.pixels[i].g;
+        unsigned char G2 = h2.pixels[i].g;
+        unsigned char R1 = h1.pixels[i].r;
+        unsigned char R2 = h2.pixels[i].r;
+        if (!(B1 == B2 && G1 == G2 && R1 == R2)) {
+            //cout << (float)B1 << ":" << (float)B2 << endl;
+            //cout << (float)G1 << ":" << (float)G2 << endl;
+            //cout << (float)R1 << ":" << (float)R2 << endl;
+            cout << "pixel num: " << i;
+            Success = false;
+            break;
+        }
+    }
+    if(Success)
+        cout << "Success" << endl;
+    else
+        cout << "Failure" << endl;
+}
+Header screen(Header* topLayer, Header* bottomLayer){
+    Header output;
+    copyHeader(topLayer,&output);
+    for(unsigned int i=0; i<(topLayer->height)*(topLayer->width); i++){
+        float r=255-((float)(255-topLayer->pixels[i].r)*(255-bottomLayer->pixels[i].r))/255+0.5f;
+        float g=255-((float)(255-topLayer->pixels[i].g)*(255-bottomLayer->pixels[i].g))/255+0.5f;
+        float b=255-((float)(255-topLayer->pixels[i].b)*(255-bottomLayer->pixels[i].b))/255+0.5f;
+        Pixel result;
+        result.r=(unsigned char)r;
+        result.g=(unsigned char)g;
+        result.b=(unsigned char)b;
+        output.pixels.push_back(result);
+    }
+    return output;
+}
+
+int main() {
+//Task 1
+    Header layer1 = ReadFile("input/layer1.tga");
+    Header pattern1 = ReadFile("input/pattern1.tga");
+    Header result=multiply(&layer1, &pattern1);
+    writeFile("output/part1.tga",&result);
+//Task 2
+    Header layer2 = ReadFile("input/layer2.tga");
+    Header car = ReadFile("input/car.tga");
+    result=subtract(&car,&layer2);
+    writeFile("output/part2.tga",&result);
+//Task 3
+    Header pattern2 = ReadFile("input/pattern2.tga");
+    Header multiplied=multiply(&layer1,&pattern2);
+    Header text = ReadFile("input/text.tga");
+    result=screen(&multiplied,&text);
+    writeFile("output/part3.tga",&result);
+//Task 4
+    Header circles = ReadFile("input/circles.tga");
+    Header temp=multiply(&layer2,&circles);
+    result=subtract(&temp,&pattern2);
+    writeFile("output/part4.tga",&result);
+//Task 5
+    Header outputOverlay;
+    copyHeader(&layer1,&outputOverlay);
+    for(unsigned int i=0; i<(layer1.height)*(layer1.width); i++){
+        float r,g,b;
+        if(pattern1.pixels[i].r<=127)
+            r=((float)(layer1.pixels[i].r)*(pattern1.pixels[i].r))*2/255+0.5f;
+        else
+            r=(255-(((float)(255-layer1.pixels[i].r)*(255-pattern1.pixels[i].r))*2/255)+0.5f);
+        if(pattern1.pixels[i].g<=127)
+            g=((float)(layer1.pixels[i].g)*(pattern1.pixels[i].g))*2/255+0.5f;
+        else
+            g=(255-(((float)(255-layer1.pixels[i].g)*(255-pattern1.pixels[i].g))*2/255)+0.5f);
+        if(pattern1.pixels[i].b<=127)
+            b=((float)(layer1.pixels[i].b)*(pattern1.pixels[i].b))*2/255+0.5f;
+        else
+            b=(255-(((float)(255-layer1.pixels[i].b)*(255-pattern1.pixels[i].b))*2/255)+0.5f);
+        Pixel result;
+        result.r=(unsigned char)r;
+        result.g=(unsigned char)g;
+        result.b=(unsigned char)b;
+        outputOverlay.pixels.push_back(result);
+    }
+    writeFile("output/part5.tga",&outputOverlay);
+//Task 6
+    Header output;
+    copyHeader(&car,&output);
+    for(unsigned int i=0; i<(car.height)*(car.width); i++){
+        float g=((float)(car.pixels[i].g)+200);
+        if(g>255)
+            g=255;
+        Pixel result;
+        result.r=car.pixels[i].r;
+        result.g=(unsigned char)g;
+        result.b=car.pixels[i].b;
+        output.pixels.push_back(result);
+    }
+    writeFile("output/part6.tga",&output);
+//Task 7
+    Header output2;
+    copyHeader(&car,&output2);
+    for(unsigned int i=0; i<(car.height)*(car.width); i++){
+        float r=((float)(car.pixels[i].r)*4);
+        if(r>255)
+            r=255;
+        Pixel result;
+        result.r=r;
+        result.g=car.pixels[i].g;
+        result.b=0;
+        output2.pixels.push_back(result);
+    }
+    writeFile("output/part7.tga",&output2);
+//Task 8
+    Header outputr;
+    Header outputg;
+    Header outputb;
+    copyHeader(&car,&outputr);
+    copyHeader(&car,&outputg);
+    copyHeader(&car,&outputb);
+    for(unsigned int i=0; i<(car.height)*(car.width); i++){
+        Pixel resultr;
+        resultr.r=car.pixels[i].r;
+        resultr.g=car.pixels[i].r;
+        resultr.b=car.pixels[i].r;
+        outputr.pixels.push_back(resultr);
+        Pixel resultg;
+        resultg.r=car.pixels[i].g;
+        resultg.g=car.pixels[i].g;
+        resultg.b=car.pixels[i].g;
+        outputg.pixels.push_back(resultg);
+        Pixel resultb;
+        resultb.r=car.pixels[i].b;
+        resultb.g=car.pixels[i].b;
+        resultb.b=car.pixels[i].b;
+        outputb.pixels.push_back(resultb);
+    }
+    writeFile("output/part8_r.tga",&outputr);
+    writeFile("output/part8_g.tga",&outputg);
+    writeFile("output/part8_b.tga",&outputb);
+//Task 9
+    Header output3;
+    Header layer_red = ReadFile("input/layer_red.tga");
+    Header layer_green = ReadFile("input/layer_green.tga");
+    Header layer_blue = ReadFile("input/layer_blue.tga");
+    copyHeader(&layer_red,&output3);
+    for(unsigned int i=0; i<(layer_red.height)*(layer_red.width); i++){
+        Pixel result;
+        result.b=layer_blue.pixels[i].b;
+        result.g=layer_green.pixels[i].g;
+        result.r=layer_red.pixels[i].r;
+        output3.pixels.push_back(result);
+    }
+    writeFile("output/part9.tga",&output3);
+//Task 10
+    Header output4;
+    Header text2=ReadFile("input/text2.tga");
+    copyHeader(&text2,&output4);
+    for(unsigned int i=(text2.width)*(text2.height)-1;i>0; i--)
+        output4.pixels.push_back(text2.pixels[i]);
+    output4.pixels.push_back(text2.pixels[0]);
+    writeFile("output/part10.tga",&output4);
+    return 0;
+}
