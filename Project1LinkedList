@@ -1,0 +1,582 @@
+#include <iostream>
+#include <string>
+#include <sstream>
+#include <vector>
+using namespace std;
+
+template <typename T>
+class LinkedList {
+public:
+    struct Node{
+        T data;
+        Node* next;
+        Node* prev;
+        Node(T _data, Node* _next, Node* _prev );
+    };
+    void AddHead(const T& data);
+    void AddTail(const T& data);
+    void AddNodesHead(const T* data, unsigned int count);
+    void AddNodesTail(const T* data, unsigned int count);
+    unsigned int NodeCount() const;
+    void PrintForward() const;
+    void PrintReverse() const;
+    LinkedList();
+    ~LinkedList();
+    Node* Head();
+    const Node* Head() const;
+    const Node* Tail() const;
+    Node* Tail();
+    Node* GetNode(unsigned int index);
+    const Node* GetNode(unsigned int index) const;
+    const T& operator[](unsigned int index) const;
+    T& operator[](unsigned int index);
+    const Node* Find(const T& data) const;
+    Node* Find(const T& data);
+    void FindAll(vector<Node*>& outData, const T& value) const;
+    LinkedList(const LinkedList<T>& list);
+    LinkedList<T>& operator=(const LinkedList<T>& rhs);
+    void InsertAfter(Node* node, const T& data);
+    void InsertBefore(Node* node, const T& data);
+    void InsertAt(const T& data, unsigned int index);
+    bool operator==(const LinkedList<T>& rhs) const;
+    bool RemoveHead();
+    bool RemoveTail();
+    unsigned int Remove(const T&data);
+    bool RemoveAt(unsigned int index);
+    void Clear();
+    void PrintForwardRecursive(const Node* node) const;
+    void PrintReverseRecursive(const Node* node) const;
+
+private:
+    Node* head;
+    Node* tail;
+    unsigned int numNodes;
+};
+
+template <typename T>
+LinkedList<T>::Node::Node(T _data, Node* _next, Node* _prev ){
+    data=_data;
+    next=_next;
+    prev=_prev;
+}
+
+template<typename T>
+void LinkedList<T>::AddHead(const T &data) {
+    numNodes++;
+    if(numNodes==1){
+        head=new Node(data,nullptr,nullptr);
+        tail=head;
+    } else{
+        Node* temp=new Node(data, head, nullptr);
+        head->prev=temp;
+        head=temp;
+    }
+}
+
+template<typename T>
+void LinkedList<T>::AddTail(const T &data) {
+    numNodes++;
+    if(numNodes==1){
+        head=new Node(data,nullptr,nullptr);
+        tail=head;
+    } else{
+        Node* temp=new Node(data, nullptr, tail);
+        tail->next=temp;
+        tail=temp;
+    }
+}
+
+template<typename T>
+void LinkedList<T>::AddNodesHead(const T *data, unsigned int count) {
+    for(unsigned int i = count; i>0; i--)
+        AddHead(data[i-1]);
+}
+
+template<typename T>
+void LinkedList<T>::AddNodesTail(const T *data, unsigned int count) {
+    for(unsigned int i=0; i<count; i++)
+        AddTail(data[i]);
+}
+
+template<typename T>
+unsigned int LinkedList<T>::NodeCount() const {
+    return numNodes;
+}
+
+template<typename T>
+void LinkedList<T>::PrintForward() const {
+    Node* goTo=head;
+    for(unsigned int i=0; i<numNodes; i++){
+        cout << goTo->data << endl;
+        goTo=goTo->next;
+    }
+}
+
+template<typename T>
+void LinkedList<T>::PrintReverse() const {
+    Node* goTo=tail;
+    for(unsigned int i=0; i<numNodes; i++){
+        cout << goTo->data << endl;
+        goTo=goTo->prev;
+    }
+}
+
+template<typename T>
+LinkedList<T>::LinkedList() {
+    numNodes=0;
+    head=nullptr;
+    tail=nullptr;
+}
+
+
+template<typename T>
+LinkedList<T>::~LinkedList() {
+    if(numNodes>0){
+        Node* goTo=head;
+        while(goTo->next!=nullptr) {
+            Node *temp = goTo->next;
+            delete goTo;
+            goTo = temp;
+        }
+        delete goTo;
+    }
+
+}
+
+template<typename T>
+typename LinkedList<T>::Node *LinkedList<T>::Head() {
+    return head;
+}
+
+template<typename T>
+typename LinkedList<T>::Node *LinkedList<T>::Tail() {
+    return tail;
+}
+
+template<typename T>
+const typename LinkedList<T>::Node *LinkedList<T>::Head() const {
+    return head;
+}
+
+template<typename T>
+const typename LinkedList<T>::Node *LinkedList<T>::Tail() const {
+    return tail;
+}
+
+template<typename T>
+typename LinkedList<T>::Node* LinkedList<T>::GetNode(unsigned int index){
+    Node* temp=head;
+    if(index+1>numNodes){
+        throw out_of_range("An error has occurred");
+    }
+    for(unsigned int i=0;i<index;i++){
+        temp=temp->next;
+    }
+    return temp;
+}
+
+template<typename T>
+const typename LinkedList<T>::Node *LinkedList<T>::GetNode(unsigned int index) const {
+    Node* temp=head;
+    if(index+1>numNodes){
+        throw out_of_range("An error has occurred");
+    }
+    for(unsigned int i=0;i<index;i++){
+        temp=temp->next;
+    }
+    return temp;
+}
+
+template<typename T>
+const T &LinkedList<T>::operator[](unsigned int index) const {
+    return GetNode(index)->data;
+}
+
+template<typename T>
+T &LinkedList<T>::operator[](unsigned int index) {
+    return GetNode(index)->data;
+}
+
+template<typename T>
+const typename LinkedList<T>::Node *LinkedList<T>::Find(const T &data) const {
+    Node* temp=head;
+    for(unsigned int i=0;i<numNodes;i++){
+        if(temp->data==data){
+            return temp;
+        }
+        temp=temp->next;
+    }
+    return nullptr;
+}
+
+template<typename T>
+typename LinkedList<T>::Node *LinkedList<T>::Find(const T &data) {
+    Node* temp=head;
+    for(unsigned int i=0;i<numNodes;i++){
+        if(temp->data==data){
+            return temp;
+        }
+        temp=temp->next;
+    }
+    return nullptr;
+}
+
+template<typename T>
+void LinkedList<T>::FindAll(vector<LinkedList::Node *> &outData, const T &value) const {
+    Node* temp=head;
+    for(unsigned int i=0;i<numNodes;i++){
+        if(temp->data==value){
+            outData.push_back(temp);
+        }
+        temp=temp->next;
+    }
+}
+
+template<typename T>
+LinkedList<T>::LinkedList(const LinkedList<T> &list) {
+    numNodes=0;
+    head=nullptr;
+    tail=nullptr;
+    Node const* goTo=list.Head();
+    for(unsigned int i=0; i<list.NodeCount(); i++){
+        numNodes++;
+        if(numNodes==1){
+            head=new Node(goTo->data,nullptr,nullptr);
+            tail=head;
+        } else{
+            Node* temp=new Node(goTo->data, nullptr, tail);
+            tail->next=temp;
+            tail=temp;
+        }
+        goTo=goTo->next;
+    }
+}
+
+template<typename T>
+LinkedList<T> &LinkedList<T>::operator=(const LinkedList<T> &rhs) {
+    Node* go=head;
+    while(go!=nullptr) {
+        Node *temp = go->next;
+        delete go;
+        go = temp;
+    }
+    numNodes=0;
+    head=nullptr;
+    tail=nullptr;
+    Node const* goTo=rhs.Head();
+    for(unsigned int i=0; i<rhs.NodeCount(); i++){
+        numNodes++;
+        if(numNodes==1){
+            head=new Node(goTo->data,nullptr,nullptr);
+            tail=head;
+        } else{
+            Node* temp=new Node(goTo->data, nullptr, tail);
+            tail->next=temp;
+            tail=temp;
+        }
+        goTo=goTo->next;
+    }
+    return *this;
+}
+
+template<typename T>
+void LinkedList<T>::InsertAfter(LinkedList::Node *node, const T &data) {
+    Node* temp=new Node(data, node->next, node);
+    if(node==tail){
+        node->next=temp;
+        tail=temp;
+    }else{
+        node->next->prev=temp;
+        node->next=temp;
+    }
+    numNodes++;
+}
+
+template<typename T>
+void LinkedList<T>::InsertBefore(LinkedList::Node *node, const T &data) {
+    Node* temp=new Node(data, node, node->prev);
+    if(node==head){
+        node->prev=temp;
+        head=temp;
+    }else{
+        node->prev->next=temp;
+        node->prev=temp;
+    }
+    numNodes++;
+}
+
+template<typename T>
+void LinkedList<T>::InsertAt(const T &data, unsigned int index) {
+    if(index==numNodes){
+        AddTail(data);
+    }else{
+        Node* pos= GetNode(index);
+        InsertBefore(pos,data);
+    }
+}
+
+template<typename T>
+bool LinkedList<T>::operator==(const LinkedList<T> &rhs) const {
+    if(rhs.NodeCount()!=numNodes){
+        return false;
+    }
+    Node* tempOriginal=head;
+    Node const* tempCompare=rhs.Head();
+    for(unsigned int i=0; i<numNodes; i++){
+        if(tempOriginal->data!=tempCompare->data)
+            return false;
+        tempOriginal=tempOriginal->next;
+        tempCompare=tempCompare->next;
+    }
+    return true;
+}
+
+template<typename T>
+bool LinkedList<T>::RemoveHead() {
+    if(numNodes==0){
+        return false;
+    }
+    if(numNodes==1){
+        Node* goTo=head;
+        delete goTo;
+        numNodes--;
+        return true;
+    }
+    Node* goTo=head;
+    goTo->next->prev=nullptr;
+    head=head->next;
+    delete goTo;
+    numNodes--;
+    return true;
+}
+
+template<typename T>
+bool LinkedList<T>::RemoveTail() {
+    if(numNodes==0){
+        return false;
+    }
+    if(numNodes==1){
+        Node* goTo=head;
+        delete goTo;
+        numNodes--;
+        return true;
+    }
+    Node* goTo=tail;
+    goTo->prev->next=nullptr;
+    tail=tail->prev;
+    delete goTo;
+    numNodes--;
+    return true;
+}
+
+template<typename T>
+unsigned int LinkedList<T>::Remove(const T &data) {
+    vector<int> temp;
+    for(unsigned int i=0;i<numNodes;i++){
+        if(data==GetNode(i)->data)
+            temp.push_back(i);
+    }
+    for(unsigned int i=temp.size();i>0;i--){
+        RemoveAt(temp[i-1]);
+    }
+    return temp.size();
+}
+
+template<typename T>
+bool LinkedList<T>::RemoveAt(unsigned int index) {
+    if(index>=numNodes||numNodes==0)
+        return false;
+    if(numNodes==1){
+        RemoveHead();
+        return true;
+    }
+    if(numNodes-1==index){
+        RemoveTail();
+        return true;
+    }
+    if(numNodes==2){
+        if(index==0){
+            RemoveHead();
+        }else{
+            RemoveTail();
+        }
+        return true;
+    }
+    Node* goTo=GetNode(index);
+    goTo->prev->next=goTo->next;
+    goTo->next->prev=goTo->prev;
+    delete goTo;
+    numNodes--;
+    return true;
+}
+
+template<typename T>
+void LinkedList<T>::Clear() {
+    if(numNodes>0){
+        Node* goTo=head;
+        while(goTo->next!=nullptr) {
+            Node *temp = goTo->next;
+            delete goTo;
+            goTo = temp;
+        }
+        delete goTo;
+    }
+    head=nullptr;
+    tail=nullptr;
+    numNodes=0;
+}
+
+template<typename T>
+void LinkedList<T>::PrintForwardRecursive(const Node* node) const {
+    cout << node->data << endl;
+    if(node->next!=nullptr)
+        PrintForwardRecursive(node->next);
+
+}
+
+template<typename T>
+void LinkedList<T>::PrintReverseRecursive(const LinkedList::Node *node) const {
+    cout<<node->data<<endl;
+    if(node->prev!=nullptr)
+        PrintReverseRecursive(node->prev);
+}
+
+void TestRemove();
+void TestRemoveHeadTail();
+void TestOtherRemoval();
+void TestRecursion();
+
+int main()
+{
+    int testNum;
+    cin >> testNum;
+    if (testNum == 1)
+        TestRemove();
+    else if (testNum == 2)
+        TestRemoveHeadTail();
+    else if (testNum == 3)
+        TestOtherRemoval();
+    else if (testNum == 4)
+        TestRecursion();
+
+    return 0;
+}
+
+void TestRemove()
+{
+    cout << "=====Testing Remove() functionality=====" << endl;
+    LinkedList<string> data;
+    string test = "Test RemoveMe to RemoveMe find RemoveMe all RemoveMe matching ";
+    test.append("RemoveMe nodes RemoveMe completed RemoveMe with RemoveMe no ");
+    test.append("RemoveMe \"RemoveMe\" RemoveMe nodes RemoveMe remaining.");
+    stringstream x(test);
+    string tmp;
+    while (getline(x, tmp, ' '))
+        data.AddTail(tmp);
+
+    cout << "Initial list: " << endl;
+    data.PrintForward();
+    string val = "RemoveMe";
+    int count = data.Remove(val);
+    cout << "\nRemoving " << val << " from the list." << endl;
+    cout << "Removed " << count << " nodes from the list.\n" << endl;
+    data.PrintForward();
+    cout << "\nNodes removed: " << count << endl;
+
+    count = data.Remove(val);
+    cout << "Removing " << val << " from the list again." << endl;
+    cout << "Nodes removed: " << count << endl;
+
+}
+
+void TestRemoveHeadTail()
+{
+    cout << "=====Testing RemoveHead()/RemoveTail() functionality=====" << endl;
+    LinkedList<int> data;
+    for (unsigned int i = 0; i < 70; i += 5)
+        data.AddTail(i);
+
+    cout << "Initial list: " << endl;
+    data.PrintForward();
+
+    cout << "Removing 2 Tail and 2 Head Nodes..." << endl;
+    data.RemoveHead();
+    data.RemoveTail();
+    data.RemoveHead();
+    data.RemoveTail();
+    data.PrintForward();
+}
+
+void TestOtherRemoval()
+{
+    cout << "=====Testing RemoveAt() and clearing with RemoveHead()/RemoveTail() functionality=====" << endl;
+    LinkedList<string> data;
+    data.AddTail("Batman");
+    data.AddTail("RemoveMe");
+    data.AddTail("Superman");
+    data.AddTail("RemoveMe");
+    data.AddTail("Wonder Woman");
+    data.AddTail("RemoveMe");
+    data.AddTail("The Flash");
+
+    cout << "Initial list: " << endl;
+    data.PrintForward();
+    cout << "\nRemoving using RemoveAt()..." << endl;
+    data.RemoveAt(1);
+    data.RemoveAt(2);
+    data.RemoveAt(3);
+
+    data.PrintForward();
+
+    cout << "\nAttempting to remove out of range using RemoveAt()..." << endl;
+    if (!data.RemoveAt(100))
+        cout << "Attempt to RemoveAt(100) failed." << endl;
+    else
+        cout << "Successfully removed node 100? Weird, there are only 4 nodes..." << endl;
+
+    cout << "\nClearing list using RemoveHead()..." << endl;
+    while (data.RemoveHead()){}
+
+    if (data.NodeCount() == 0)
+        cout << "List is empty!" << endl;
+    else
+        cout << "List not empty!" << endl;
+
+    cout << "Adding additional nodes..." << endl;
+    data.AddTail("Robin");
+    data.AddTail("Batgirl");
+    data.AddTail("Nightwing");
+    data.AddTail("Red Hood");
+    data.AddTail("Bluebird");
+
+    data.PrintForward();
+
+    cout << "Clearing list using RemoveTail()..." << endl;
+    while (data.RemoveTail()) {}
+
+    if (data.NodeCount() == 0)
+        cout << "List is empty!" << endl;
+    else
+        cout << "List not empty!" << endl;
+
+}
+
+void TestRecursion()
+{
+    LinkedList<int> power2;
+    int val = 2;
+    for (int i = 0; i < 10; i++)
+    {
+        power2.AddTail(val);
+        val *= 2;
+    }
+    cout << "Initial list: " << endl;
+    power2.PrintForward();
+    cout << "Printing recursively forward from 64: " << endl;
+    LinkedList<int>::Node *node = power2.Find(64);
+    power2.PrintForwardRecursive(node);
+
+    cout << "Printing recursively in reverse from 512: " << endl;
+    node = power2.Find(512);
+    power2.PrintReverseRecursive(node);
+}
